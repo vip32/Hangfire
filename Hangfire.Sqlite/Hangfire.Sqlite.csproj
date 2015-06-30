@@ -7,8 +7,8 @@
     <ProjectGuid>{CCF6BF9A-E26C-49CC-9409-6B113E8BCC3B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Hangfire.Sqlite</RootNamespace>
-    <AssemblyName>Hangfire.Sqlite</AssemblyName>
+    <RootNamespace>Hangfire.SQLite</RootNamespace>
+    <AssemblyName>Hangfire.SQLite</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <NuGetPackageImportStamp>e2ab537a</NuGetPackageImportStamp>
@@ -45,6 +45,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.SQLite, Version=1.0.97.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Data.SQLite.Core.1.0.97.0\lib\net45\System.Data.SQLite.dll</HintPath>
@@ -58,6 +59,7 @@
       <HintPath>..\packages\System.Data.SQLite.Linq.1.0.97.0\lib\net45\System.Data.SQLite.Linq.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -65,7 +67,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Entities\JobParameter.cs" />
+    <Compile Include="Entities\Server.cs" />
+    <Compile Include="Entities\ServerData.cs" />
+    <Compile Include="Entities\SqlHash.cs" />
+    <Compile Include="Entities\SqlJob.cs" />
+    <Compile Include="Entities\SqlState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SQLiteDistributedLock.cs" />
+    <Compile Include="SQLiteConnection.cs" />
+    <Compile Include="SQLiteStorage.cs" />
+    <Compile Include="SQLiteStorageOptions.cs" />
+    <Compile Include="SQLiteWriteOnlyTransaction.cs" />
+    <Compile Include="SQLiteMonitoringApi.cs" />
+    <Compile Include="SQLiteJobQueueProvider.cs" />
+    <Compile Include="SQLiteFetchedJob.cs" />
+    <Compile Include="SQLiteJobQueue.cs" />
+    <Compile Include="SQLiteJobQueueMonitoringApi.cs" />
+    <Compile Include="SQLiteStorageExtensions.cs" />
+    <Compile Include="SQLiteObjectsInstaller.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

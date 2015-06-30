@@ -53,9 +53,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{F710C9
 		.nuget\packages.config = .nuget\packages.config
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Sqlite", "Hangfire.Sqlite\Hangfire.Sqlite.csproj", "{CCF6BF9A-E26C-49CC-9409-6B113E8BCC3B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.SQLite", "Hangfire.Sqlite\Hangfire.SQLite.csproj", "{CCF6BF9A-E26C-49CC-9409-6B113E8BCC3B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.Sqlite.Tests", "tests\Hangfire.Sqlite.Tests\Hangfire.Sqlite.Tests.csproj", "{4B738876-3C91-481E-ACE9-2FC2F1FBCFAF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.SQLite.Tests", "tests\Hangfire.Sqlite.Tests\Hangfire.SQLite.Tests.csproj", "{4B738876-3C91-481E-ACE9-2FC2F1FBCFAF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
