@@ -67,13 +67,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Hangfire.Sqlite\Hangfire.SQLite.csproj">
-      <Project>{CCF6BF9A-E26C-49CC-9409-6B113E8BCC3B}</Project>
-      <Name>Hangfire.SQLite</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\src\Hangfire.Core\Hangfire.Core.csproj">
       <Project>{c995ea9e-56ee-4951-8260-d94260a7f4c2}</Project>
       <Name>Hangfire.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\src\Hangfire.SQLite\Hangfire.SQLite.csproj">
+      <Project>{ccf6bf9a-e26c-49cc-9409-6b113e8bcc3b}</Project>
+      <Name>Hangfire.SQLite</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\src\Hangfire.SqlServer\Hangfire.SqlServer.csproj">
       <Project>{a523c0e3-097d-4869-977f-15a717ea3e83}</Project>
