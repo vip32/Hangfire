@@ -122,17 +122,17 @@ select last_insert_rowid() as Id;";
         public void Dequeue_ShouldLeaveJobInTheQueue_ButSetItsFetchedAtValue()
         {
             const string arrangeSql = @"
-insert into HangFire.Job (InvocationData, Arguments, CreatedAt)
-values (@invocationData, @arguments, getutcdate())
-insert into HangFire.JobQueue (JobId, Queue)
-values (scope_identity(), @queue)";
+insert into [HangFire.Job] (InvocationData, Arguments, CreatedAt)
+values (@invocationData, @arguments, @utc);
+insert into [HangFire.JobQueue] (JobId, Queue)
+values (last_insert_rowid(), @queue)";
 
             // Arrange
             UseConnection(connection =>
             {
                 connection.Execute(
                     arrangeSql,
-                    new { invocationData = "", arguments = "", queue = "default" });
+                    new { invocationData = "", arguments = "", queue = "default", utc = DateTime.UtcNow });
                 var queue = CreateJobQueue(connection);
 
                 // Act
@@ -144,7 +144,7 @@ values (scope_identity(), @queue)";
                 Assert.NotNull(payload);
 
                 var fetchedAt = connection.Query<DateTime?>(
-                    "select FetchedAt from HangFire.JobQueue where JobId = @id",
+                    "select FetchedAt from [HangFire.JobQueue] where JobId = @id",
                     new { id = payload.JobId }).Single();
 
                 Assert.NotNull(fetchedAt);
