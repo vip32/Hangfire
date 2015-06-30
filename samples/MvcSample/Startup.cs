@@ -1,4 +1,5 @@
-﻿using Hangfire;
+﻿using System;
+using Hangfire;
 using Hangfire.Dashboard;
 using Hangfire.SqlServer;
 using Microsoft.Owin;
@@ -15,7 +16,7 @@ namespace MvcSample
         {
             GlobalConfiguration.Configuration
                 .UseSqlServerStorage(@"Server=.\sqlexpress;Database=Hangfire.Sample;Trusted_Connection=True;")
-                .UseMsmqQueues(@".\Private$\hangfire{0}", "default", "critical")
+                //.UseMsmqQueues(@".\Private$\hangfire{0}", "default", "critical")
                 .UseDashboardMetric(SqlServerStorage.ActiveConnections)
                 .UseDashboardMetric(SqlServerStorage.TotalConnections)
                 .UseDashboardMetric(DashboardMetrics.FailedCount);
