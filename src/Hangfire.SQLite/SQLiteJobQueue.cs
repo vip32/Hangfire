@@ -57,49 +57,43 @@ namespace Hangfire.SQLite
 
             const string fetchNextJobSqlTemplate = @"
 select * from [Hangfire.JobQueue]
-where FetchedAt is null
+where FetchedAt {0}
 and Queue in @queues
 limit 1";
 
             const string dequeueJobSqlTemplate = @"
 update [Hangfire.JobQueue]
-set FetchedAt = @utc
+set FetchedAt = datetime('now', 'utc')
 where Id = @id";
 
-            // Sql query is splitted to force SQL Server to use 
-            // INDEX SEEK instead of INDEX SCAN operator.
-            //var fetchConditions = new[] { "is null", "< DATEADD(second, @timeout, GETUTCDATE())" };
+            var fetchConditions = new[] { "is null", "< datetime('now', 'utc', '" + _options.InvisibilityTimeout.Negate().TotalSeconds + " second')" };
             var currentQueryIndex = 0;
 
             do
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                //fetchedJob = _connection.Query<FetchedJob>(
-                //    String.Format(fetchJobSqlTemplate, fetchConditions[currentQueryIndex]),
-                //    new { queues = queues, timeout = _options.InvisibilityTimeout.Negate().TotalSeconds })
-                //    .SingleOrDefault();
-
                 // select
-                fetchedJob = _connection.Query<FetchedJob>(fetchNextJobSqlTemplate,
-                    new { queues = queues})
+                fetchedJob = _connection.Query<FetchedJob>(String.Format(fetchNextJobSqlTemplate, fetchConditions[currentQueryIndex]),
+                    new { queues = queues })
                     .SingleOrDefault();
 
                 if (fetchedJob == null)
                 {
-                    //if (currentQueryIndex == fetchConditions.Length - 1)
-                    //{
+                    if (currentQueryIndex == fetchConditions.Length - 1)
+                    {
                         cancellationToken.WaitHandle.WaitOne(_options.QueuePollInterval);
                         cancellationToken.ThrowIfCancellationRequested();
-                    //}
+                    }
+                }
+                else
+                {
+                    // update
+                    _connection.Execute(dequeueJobSqlTemplate,
+                        new {id = fetchedJob.Id, utc = DateTime.UtcNow});
                 }
 
-                // update
-                _connection.Execute(dequeueJobSqlTemplate,
-                    new { id = fetchedJob.Id, utc = DateTime.UtcNow });
-
-
-                //currentQueryIndex = (currentQueryIndex + 1) % fetchConditions.Length;
+                currentQueryIndex = (currentQueryIndex + 1) % fetchConditions.Length;
             } while (fetchedJob == null);
 
             return new SQLiteFetchedJob(
@@ -112,7 +106,7 @@ where Id = @id";
         public void Enqueue(string queue, string jobId)
         {
             const string enqueueJobSql = @"
-insert into HangFire.JobQueue (JobId, Queue) values (@jobId, @queue)";
+insert into [HangFire.JobQueue] (JobId, Queue) values (@jobId, @queue)";
 
             _connection.Execute(enqueueJobSql, new { jobId = jobId, queue = queue });
         }

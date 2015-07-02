@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Hangfire.SQLite</id>
+    <version>0.0.0</version>
+    <title>Hangfire SQLite Storage</title>
+    <authors>Sergey Odinokov, Vincent van Proosdij</authors>
+    <owners>vip32</owners>
+    <projectUrl>http://hangfire.io/</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <licenseUrl>https://raw.github.com/HangfireIO/Hangfire/master/LICENSE.md</licenseUrl>
+    <description>SQLite support for Hangfire (background job system for ASP.NET applications).</description>
+    <copyright>Copyright © 2013-2015 Sergey Odinokov</copyright>
+    <tags>Hangfire SQLite</tags>
+    <releaseNotes>https://github.com/HangfireIO/Hangfire/releases
+0.1.0
+* Added – Initial version
+    </releaseNotes>
+    <dependencies>
+      <dependency id="Hangfire.Core" version="[0.0.0]" />
+      <dependency id="Hangfire.SqlServer" version="[0.0.0]" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="Net45\Hangfire.SQLite.dll" target="lib\net45" />
+    <file src="Net45\Hangfire.SQLite.xml" target="lib\net45" />
+    <file src="Net45\Hangfire.SQLite.pdb" target="lib\net45" />
+    <file src="Tools\Install.sql" target="tools\install.sql" />
+    <file src="..\src\Hangfire.SQLite\**\*.cs" target="src" />
+  </files>
+</package>

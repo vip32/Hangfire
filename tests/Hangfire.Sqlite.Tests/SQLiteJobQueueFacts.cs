@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Threading;
 using Dapper;
-using System.Data.SQLite;
 using Hangfire.SqlServer.Tests;
-using Hangfire.SQLite.Entities;
 using Hangfire.SQLite.Tests.Utils;
 using Moq;
 using Xunit;
@@ -123,7 +120,7 @@ select last_insert_rowid() as Id;";
         {
             const string arrangeSql = @"
 insert into [HangFire.Job] (InvocationData, Arguments, CreatedAt)
-values (@invocationData, @arguments, @utc);
+values (@invocationData, @arguments, datetime('now', 'utc'));
 insert into [HangFire.JobQueue] (JobId, Queue)
 values (last_insert_rowid(), @queue)";
 
@@ -132,7 +129,7 @@ values (last_insert_rowid(), @queue)";
             {
                 connection.Execute(
                     arrangeSql,
-                    new { invocationData = "", arguments = "", queue = "default", utc = DateTime.UtcNow });
+                    new { invocationData = "", arguments = "", queue = "default" });
                 var queue = CreateJobQueue(connection);
 
                 // Act
@@ -148,7 +145,8 @@ values (last_insert_rowid(), @queue)";
                     new { id = payload.JobId }).Single();
 
                 Assert.NotNull(fetchedAt);
-                Assert.True(fetchedAt > DateTime.UtcNow.AddMinutes(-1));
+                Assert.True(fetchedAt.Value > connection.Query<DateTime?>(
+                    "select datetime('now', 'utc', '-1 minute')").Single().Value); // TODO: sqlite utc !+ DateTime.UtcNow
             });
         }
 
@@ -156,10 +154,10 @@ values (last_insert_rowid(), @queue)";
         public void Dequeue_ShouldFetchATimedOutJobs_FromTheSpecifiedQueue()
         {
             const string arrangeSql = @"
-insert into HangFire.Job (InvocationData, Arguments, CreatedAt)
-values (@invocationData, @arguments, getutcdate())
-insert into HangFire.JobQueue (JobId, Queue, FetchedAt)
-values (scope_identity(), @queue, @fetchedAt)";
+insert into [HangFire.Job] (InvocationData, Arguments, CreatedAt)
+values (@invocationData, @arguments, datetime('now', 'utc'));
+insert into [HangFire.JobQueue] (JobId, Queue, FetchedAt)
+values (last_insert_rowid(), @queue, datetime('now', 'utc', '-1 day'))";
 
             // Arrange
             UseConnection(connection =>
@@ -173,7 +171,7 @@ values (scope_identity(), @queue, @fetchedAt)";
                         invocationData = "",
                         arguments = ""
                     });
-                var queue = CreateJobQueue(connection);
+                var queue = CreateJobQueueInvisibilityTimeout(connection);
 
                 // Act
                 var payload = queue.Dequeue(
@@ -189,10 +187,10 @@ values (scope_identity(), @queue, @fetchedAt)";
         public void Dequeue_ShouldSetFetchedAt_OnlyForTheFetchedJob()
         {
             const string arrangeSql = @"
-insert into HangFire.Job (InvocationData, Arguments, CreatedAt)
-values (@invocationData, @arguments, getutcdate())
-insert into HangFire.JobQueue (JobId, Queue)
-values (scope_identity(), @queue)";
+insert into [HangFire.Job] (InvocationData, Arguments, CreatedAt)
+values (@invocationData, @arguments, datetime('now', 'utc'));
+insert into [HangFire.JobQueue] (JobId, Queue)
+values (last_insert_rowid(), @queue)";
 
             // Arrange
             UseConnection(connection =>
@@ -213,7 +211,7 @@ values (scope_identity(), @queue)";
 
                 // Assert
                 var otherJobFetchedAt = connection.Query<DateTime?>(
-                    "select FetchedAt from HangFire.JobQueue where JobId != @id",
+                    "select FetchedAt from [HangFire.JobQueue] where JobId != @id",
                     new { id = payload.JobId }).Single();
 
                 Assert.Null(otherJobFetchedAt);
@@ -224,10 +222,10 @@ values (scope_identity(), @queue)";
         public void Dequeue_ShouldFetchJobs_OnlyFromSpecifiedQueues()
         {
             const string arrangeSql = @"
-insert into HangFire.Job (InvocationData, Arguments, CreatedAt)
-values (@invocationData, @arguments, getutcdate())
-insert into HangFire.JobQueue (JobId, Queue)
-values (scope_identity(), @queue)";
+insert into [HangFire.Job] (InvocationData, Arguments, CreatedAt)
+values (@invocationData, @arguments, datetime('now', 'utc'));
+insert into [HangFire.JobQueue] (JobId, Queue)
+values (last_insert_rowid(), @queue)";
 
             UseConnection(connection =>
             {
@@ -248,10 +246,10 @@ values (scope_identity(), @queue)";
         public void Dequeue_ShouldFetchJobs_FromMultipleQueues()
         {
             const string arrangeSql = @"
-insert into HangFire.Job (InvocationData, Arguments, CreatedAt)
-values (@invocationData, @arguments, getutcdate())
-insert into HangFire.JobQueue (JobId, Queue)
-values (scope_identity(), @queue)";
+insert into [HangFire.Job] (InvocationData, Arguments, CreatedAt)
+values (@invocationData, @arguments, datetime('now', 'utc'));
+insert into [HangFire.JobQueue] (JobId, Queue)
+values (last_insert_rowid(), @queue)";
 
             UseConnection(connection =>
             {
@@ -270,14 +268,14 @@ values (scope_identity(), @queue)";
                     CreateTimingOutCancellationToken());
 
                 Assert.NotNull(critical.JobId);
-                Assert.Equal("critical", critical.Queue);
+                Assert.Equal("default", critical.Queue);
 
                 var @default = (SQLiteFetchedJob)queue.Dequeue(
                     new[] { "critical", "default" },
                     CreateTimingOutCancellationToken());
 
                 Assert.NotNull(@default.JobId);
-                Assert.Equal("default", @default.Queue);
+                Assert.Equal("critical", @default.Queue);
             });
         }
 
@@ -290,7 +288,7 @@ values (scope_identity(), @queue)";
 
                 queue.Enqueue("default", "1");
 
-                var record = connection.Query("select * from HangFire.JobQueue").Single();
+                var record = connection.Query("select * from [HangFire.JobQueue]").Single();
                 Assert.Equal("1", record.JobId.ToString());
                 Assert.Equal("default", record.Queue);
                 Assert.Null(record.FetchedAt);
@@ -308,6 +306,12 @@ values (scope_identity(), @queue)";
         private static SQLiteJobQueue CreateJobQueue(IDbConnection connection)
         {
             return new SQLiteJobQueue(connection, new SQLiteStorageOptions());
+        }
+
+        private static SQLiteJobQueue CreateJobQueueInvisibilityTimeout(IDbConnection connection)
+        {
+            return new SQLiteJobQueue(connection,
+                new SQLiteStorageOptions {InvisibilityTimeout = TimeSpan.FromHours(1)});
         }
 
         private static void UseConnection(Action<IDbConnection> action)

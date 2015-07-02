@@ -53,7 +53,7 @@ namespace Hangfire.SQLite
         public void RemoveFromQueue()
         {
             _connection.Execute(
-                "delete from HangFire.JobQueue where Id = @id",
+                "delete from [HangFire.JobQueue] where Id = @id",
                 new { id = Id });
 
             _removedFromQueue = true;
@@ -62,7 +62,7 @@ namespace Hangfire.SQLite
         public void Requeue()
         {
             _connection.Execute(
-                "update HangFire.JobQueue set FetchedAt = null where Id = @id",
+                "update [HangFire.JobQueue] set FetchedAt = null where Id = @id",
                 new { id = Id });
 
             _requeued = true;
