@@ -55,7 +55,7 @@ CREATE INDEX [JobQueue_IX_HangFire_JobQueue_QueueAndFetchedAt]
 ON [Hangfire.JobQueue]
 ([Queue] DESC, [FetchedAt] DESC);
 CREATE TABLE [Hangfire.Server] (
-        [Id]    nvarchar(50) NOT NULL COLLATE NOCASE,
+        [Id]    nvarchar(50) PRIMARY KEY NOT NULL COLLATE NOCASE,
         [Data]  nvarchar COLLATE NOCASE,
         [LastHeartbeat] datetime NOT NULL
 
