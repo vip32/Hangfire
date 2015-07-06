@@ -365,10 +365,10 @@ when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.
 
             const string query = @"
 select [Value] from (
-	select [Value], row_number() over (order by [Id] ASC) as row_num 
+	select [Value], row_number() over (order by [Value] ASC) as row_num 
 	from HangFire.[Set]
 	where [Key] = @key 
-) as s where s.row_num between @startingFrom and @endingAt";
+) as s where s.row_num between @startingFrom and @endingAt order by s.Value";
 
             return _connection
                 .Query<string>(query, new { key = key, startingFrom = startingFrom + 1, endingAt = endingAt + 1 })
