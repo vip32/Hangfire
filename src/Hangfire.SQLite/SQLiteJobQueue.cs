@@ -90,7 +90,7 @@ where Id = @id";
                 {
                     // update
                     _connection.Execute(dequeueJobSqlTemplate,
-                        new {id = fetchedJob.Id, utc = DateTime.UtcNow});
+                        new {id = fetchedJob.Id});
                 }
 
                 currentQueryIndex = (currentQueryIndex + 1) % fetchConditions.Length;

@@ -1,15 +1,11 @@
-﻿using System;
-using System.Data.SqlClient;
+﻿using System.IO;
 using System.Reflection;
 using System.Threading;
 using System.Transactions;
-using Dapper;
-using Hangfire.SQLite;
 using Hangfire.SQLite.Tests.Utils;
 using Xunit;
-using IsolationLevel = System.Transactions.IsolationLevel;
 
-namespace Hangfire.SqlServer.Tests
+namespace Hangfire.SQLite.Tests
 {
     public class CleanDatabaseAttribute : BeforeAfterTestAttribute
     {
@@ -66,8 +62,8 @@ namespace Hangfire.SqlServer.Tests
             //    connection.Execute(recreateDatabaseSql);
             //}
 
-            if (System.IO.File.Exists(ConnectionUtils.GetDatabaseName()))
-                System.IO.File.Delete(ConnectionUtils.GetDatabaseName());
+            if (File.Exists(ConnectionUtils.GetDatabaseName()))
+                File.Delete(ConnectionUtils.GetDatabaseName());
 
             using (var connection = new System.Data.SQLite.SQLiteConnection(ConnectionUtils.GetConnectionString()))
             {

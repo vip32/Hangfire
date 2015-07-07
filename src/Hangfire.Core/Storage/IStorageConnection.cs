@@ -36,8 +36,8 @@ namespace Hangfire.Storage
 
         IFetchedJob FetchNextJob(string[] queues, CancellationToken cancellationToken);
 
-        void SetJobParameter(string id, string name, string value);
-        string GetJobParameter(string id, string name);
+        void SetJobParameter(string jobId, string name, string value);
+        string GetJobParameter(string jobId, string name);
 
         [CanBeNull]
         JobData GetJobData([NotNull] string jobId);

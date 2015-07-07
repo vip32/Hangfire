@@ -33,19 +33,19 @@ namespace Hangfire.SQLite
 {
 	internal class SQLiteConnection : JobStorageConnection
 	{
-        private readonly IDbConnection _connection;
+		private readonly IDbConnection _connection;
 		private readonly IsolationLevel? _isolationLevel;
 		private readonly PersistentJobQueueProviderCollection _queueProviders;
 
 		public SQLiteConnection(
-            IDbConnection connection,
+			IDbConnection connection,
 			IsolationLevel? isolationLevel,
 			PersistentJobQueueProviderCollection queueProviders)
 			: this(connection, isolationLevel, queueProviders, true)
 		{}
 
-        public SQLiteConnection(
-            IDbConnection connection,
+		public SQLiteConnection(
+			IDbConnection connection,
 			IsolationLevel? isolationLevel,
 			PersistentJobQueueProviderCollection queueProviders,
 			bool ownsConnection)
@@ -60,7 +60,7 @@ namespace Hangfire.SQLite
 			OwnsConnection = ownsConnection;
 		}
 
-        public IDbConnection Connection { get { return _connection; } }
+		public IDbConnection Connection { get { return _connection; } }
 		public bool OwnsConnection { get; private set; }
 
 		public override void Dispose()
@@ -78,7 +78,7 @@ namespace Hangfire.SQLite
 
 		public override IDisposable AcquireDistributedLock(string resource, TimeSpan timeout)
 		{
-		    return new SQLiteDistributedLock();
+			return new SQLiteDistributedLock();
 		}
 
 		public override IFetchedJob FetchNextJob(string[] queues, CancellationToken cancellationToken)
@@ -111,9 +111,9 @@ namespace Hangfire.SQLite
 			if (parameters == null) throw new ArgumentNullException("parameters");
 
 			const string createJobSql = @"
-insert into HangFire.Job (InvocationData, Arguments, CreatedAt, ExpireAt)
+insert into [HangFire.Job] (InvocationData, Arguments, CreatedAt, ExpireAt)
 values (@invocationData, @arguments, @createdAt, @expireAt);
-SELECT CAST(SCOPE_IDENTITY() as int)";
+select last_insert_rowid()";
 
 			var invocationData = InvocationData.Serialize(job);
 
@@ -142,7 +142,7 @@ SELECT CAST(SCOPE_IDENTITY() as int)";
 				}
 
 				const string insertParameterSql = @"
-insert into HangFire.JobParameter (JobId, Name, Value)
+insert into [HangFire.JobParameter] (JobId, Name, Value)
 values (@jobId, @name, @value)";
 
 				_connection.Execute(insertParameterSql, parameterArray);
@@ -156,7 +156,7 @@ values (@jobId, @name, @value)";
 			if (id == null) throw new ArgumentNullException("id");
 
 			const string sql = 
-				@"select InvocationData, StateName, Arguments, CreatedAt from HangFire.Job where Id = @id";
+				@"select InvocationData, StateName, Arguments, CreatedAt from [HangFire.Job] where Id = @id";
 
 			var jobData = _connection.Query<SqlJob>(sql, new { id = id })
 				.SingleOrDefault();
@@ -194,8 +194,8 @@ values (@jobId, @name, @value)";
 
 			const string sql = @"
 select s.Name, s.Reason, s.Data
-from HangFire.State s
-inner join HangFire.Job j on j.StateId = s.Id
+from [HangFire.State] s
+inner join [HangFire.Job] j on j.StateId = s.Id
 where j.Id = @jobId";
 
 			var sqlState = _connection.Query<SqlState>(sql, new { jobId = jobId }).SingleOrDefault();
@@ -216,28 +216,37 @@ where j.Id = @jobId";
 			};
 		}
 
-		public override void SetJobParameter(string id, string name, string value)
+		public override void SetJobParameter(string jobId, string name, string value)
 		{
-			if (id == null) throw new ArgumentNullException("id");
+			if (jobId == null) throw new ArgumentNullException("jobId");
 			if (name == null) throw new ArgumentNullException("name");
 
-			_connection.Execute(
-				@";merge HangFire.JobParameter with (holdlock) as Target "
-				+ @"using (VALUES (@jobId, @name, @value)) as Source (JobId, Name, Value) "
-				+ @"on Target.JobId = Source.JobId AND Target.Name = Source.Name "
-				+ @"when matched then update set Value = Source.Value "
-				+ @"when not matched then insert (JobId, Name, Value) values (Source.JobId, Source.Name, Source.Value);",
-				new { jobId = id, name, value });
+			var fetchedParam = _connection.Query<JobParameter>("select * from [HangFire.JobParameter] where JobId = @jobId and Name = @name",
+				new { jobId = jobId, name = name }).Any();
+
+			if (!fetchedParam)
+			{
+				// insert
+				_connection.Execute(
+				@"insert into [HangFire.JobParameter] (JobId, Name, Value) values (@jobId, @name, @value);",
+				new { jobId = jobId, name, value });
+			}
+			else
+			{
+				// update
+				_connection.Execute(@"update [HangFire.JobParameter] set Name = @name, Value = @value where JobId = @jobId;",
+				new { jobId = jobId, name, value });
+			}
 		}
 
-		public override string GetJobParameter(string id, string name)
+		public override string GetJobParameter(string jobId, string name)
 		{
-			if (id == null) throw new ArgumentNullException("id");
+			if (jobId == null) throw new ArgumentNullException("jobId");
 			if (name == null) throw new ArgumentNullException("name");
 
 			return _connection.Query<string>(
-				@"select Value from HangFire.JobParameter where JobId = @id and Name = @name",
-				new { id = id, name = name })
+				@"select Value from [HangFire.JobParameter] where JobId = @jobId and Name = @name",
+				new { jobId = jobId, name = name })
 				.SingleOrDefault();
 		}
 
@@ -246,7 +255,7 @@ where j.Id = @jobId";
 			if (key == null) throw new ArgumentNullException("key");
 
 			var result = _connection.Query<string>(
-				@"select Value from HangFire.[Set] where [Key] = @key",
+				@"select Value from [HangFire.Set] where [Key] = @key",
 				new { key });
 			
 			return new HashSet<string>(result);
@@ -258,7 +267,7 @@ where j.Id = @jobId";
 			if (toScore < fromScore) throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
 
 			return _connection.Query<string>(
-				@"select top 1 Value from HangFire.[Set] where [Key] = @key and Score between @from and @to order by Score",
+				@"select Value from [HangFire.Set] where [Key] = @key and Score between @from and @to order by Score limit 1",
 				new { key, from = fromScore, to = toScore })
 				.SingleOrDefault();
 		}
@@ -268,18 +277,29 @@ where j.Id = @jobId";
 			if (key == null) throw new ArgumentNullException("key");
 			if (keyValuePairs == null) throw new ArgumentNullException("keyValuePairs");
 
-			const string sql = @"
-;merge HangFire.Hash with (holdlock) as Target
-using (VALUES (@key, @field, @value)) as Source ([Key], Field, Value)
-on Target.[Key] = Source.[Key] and Target.Field = Source.Field
-when matched then update set Value = Source.Value
-when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.Field, Source.Value);";
+//            const string sql = @"
+//;merge [HangFire.Hash] with (holdlock) as Target
+//using (VALUES (@key, @field, @value)) as Source ([Key], Field, Value)
+//on Target.[Key] = Source.[Key] and Target.Field = Source.Field
+//when matched then update set Value = Source.Value
+//when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.Field, Source.Value);";
 
 			using (var transaction = new TransactionScope())
 			{
 				foreach (var keyValuePair in keyValuePairs)
 				{
-					_connection.Execute(sql, new { key = key, field = keyValuePair.Key, value = keyValuePair.Value });
+				    var fetchedHash = _connection.Query<SqlHash>("select * from [HangFire.Hash] where [Key] = @key and Field = @field",
+				        new {key = key, field = keyValuePair.Key});
+				    if (!fetchedHash.Any())
+				    {
+				        _connection.Execute("insert into [HangFire.Hash] ([Key], Field, Value) values (@key, @field, @value)",
+				            new {key = key, field = keyValuePair.Key, value = keyValuePair.Value});
+				    }
+				    else
+				    {
+				        _connection.Execute("update [HangFire.Hash] set Value = @value where values [Key] = @key and Field = @field ",
+				            new {key = key, field = keyValuePair.Key, value = keyValuePair.Value});
+				    }
 				}
 
 				transaction.Complete();
@@ -291,7 +311,7 @@ when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.
 			if (key == null) throw new ArgumentNullException("key");
 
 			var result = _connection.Query<SqlHash>(
-				"select Field, Value from HangFire.Hash with (forceseek) where [Key] = @key",
+				"select Field, Value from [HangFire.Hash] where [Key] = @key",
 				new { key })
 				.ToDictionary(x => x.Field, x => x.Value);
 
@@ -310,13 +330,33 @@ when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.
 				StartedAt = DateTime.UtcNow,
 			};
 
-			_connection.Execute(
-				@";merge HangFire.Server with (holdlock) as Target "
-				+ @"using (VALUES (@id, @data, @heartbeat)) as Source (Id, Data, Heartbeat) "
-				+ @"on Target.Id = Source.Id "
-				+ @"when matched then update set Data = Source.Data, LastHeartbeat = Source.Heartbeat "
-				+ @"when not matched then insert (Id, Data, LastHeartbeat) values (Source.Id, Source.Data, Source.Heartbeat);",
-				new { id = serverId, data = JobHelper.ToJson(data), heartbeat = DateTime.UtcNow });
+			// select by serverId
+			var serverResult = _connection.Query<Entities.Server>(
+				"select * from [HangFire.Server] where Id = @id",
+				new {id = serverId}).SingleOrDefault();
+
+			if (serverResult == null)
+			{
+				// if not found insert
+				_connection.Execute(
+					"insert into [HangFire.Server] (Id, Data, LastHeartbeat) values (@id, @data, datetime('now', 'utc'))",
+					new {id = serverId, data = JobHelper.ToJson(data)});
+			}
+			else
+			{
+				// if found, update data + heartbeart
+				_connection.Execute(
+					"update [HangFire.Server] set Data = @data, LastHeartbeat = datetime('now', 'utc') where Id = @id",
+					new { id = serverId, data = JobHelper.ToJson(data) });
+			}
+
+			//_connection.Execute(
+			//    @";merge [HangFire.Server] with (holdlock) as Target "
+			//    + @"using (VALUES (@id, @data, @heartbeat)) as Source (Id, Data, Heartbeat) "  // << SOURCE
+			//    + @"on Target.Id = Source.Id "
+			//    + @"when matched then UPDATE set Data = Source.Data, LastHeartbeat = Source.Heartbeat "
+			//    + @"when not matched then INSERT (Id, Data, LastHeartbeat) values (Source.Id, Source.Data, Source.Heartbeat);",
+			//    new { id = serverId, data = JobHelper.ToJson(data), heartbeat = DateTime.UtcNow });
 		}
 
 		public override void RemoveServer(string serverId)
@@ -324,7 +364,7 @@ when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.
 			if (serverId == null) throw new ArgumentNullException("serverId");
 
 			_connection.Execute(
-				@"delete from HangFire.Server where Id = @id",
+				@"delete from [HangFire.Server] where Id = @id",
 				new { id = serverId });
 		}
 
@@ -333,8 +373,8 @@ when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.
 			if (serverId == null) throw new ArgumentNullException("serverId");
 
 			_connection.Execute(
-				@"update HangFire.Server set LastHeartbeat = @now where Id = @id",
-				new { now = DateTime.UtcNow, id = serverId });
+				@"update [HangFire.Server] set LastHeartbeat = datetime('now', 'utc') where Id = @id",
+				new { id = serverId });
 		}
 
 		public override int RemoveTimedOutServers(TimeSpan timeOut)
@@ -345,7 +385,7 @@ when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.
 			}
 
 			return _connection.Execute(
-				@"delete from HangFire.Server where LastHeartbeat < @timeOutAt",
+				@"delete from [HangFire.Server] where LastHeartbeat < @timeOutAt",
 				new { timeOutAt = DateTime.UtcNow.Add(timeOut.Negate()) });
 		}
 
@@ -354,7 +394,7 @@ when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.
 			if (key == null) throw new ArgumentNullException("key");
 
 			return _connection.Query<int>(
-				"select count([Key]) from HangFire.[Set] where [Key] = @key",
+				"select count([Key]) from [HangFire.Set] where [Key] = @key",
 				new { key = key }).First();
 		}
 
@@ -363,14 +403,14 @@ when not matched then insert ([Key], Field, Value) values (Source.[Key], Source.
 			if (key == null) throw new ArgumentNullException("key");
 
 			const string query = @"
-select [Value] from (
-	select [Value], row_number() over (order by [Id] ASC) as row_num 
-	from HangFire.[Set]
-	where [Key] = @key 
-) as s where s.row_num between @startingFrom and @endingAt";
+select [Value] 
+from [HangFire.Set]
+where [Key] = @key 
+order by Id asc
+limit @limit offset @offset";
 
 			return _connection
-				.Query<string>(query, new { key = key, startingFrom = startingFrom + 1, endingAt = endingAt + 1 })
+				.Query<string>(query, new { key = key, limit = endingAt - startingFrom + 1, offset = startingFrom })
 				.ToList();
 		}
 
@@ -379,13 +419,13 @@ select [Value] from (
 			if (key == null) throw new ArgumentNullException("key");
 
 			const string query = @"
-select min([ExpireAt]) from HangFire.[Set]
+select min([ExpireAt]) from [HangFire.Set]
 where [Key] = @key";
 
 			var result = _connection.Query<DateTime?>(query, new { key = key }).Single();
 			if (!result.HasValue) return TimeSpan.FromSeconds(-1);
 
-			return result.Value - DateTime.UtcNow;
+			return result.Value.ToLocalTime() - DateTime.UtcNow.ToLocalTime();
 		}
 
 		public override long GetCounter(string key)
@@ -393,10 +433,10 @@ where [Key] = @key";
 			if (key == null) throw new ArgumentNullException("key");
 
 			const string query = @"
-select sum(s.[Value]) from (select sum([Value]) as [Value] from HangFire.Counter
+select sum(s.[Value]) from (select sum([Value]) as [Value] from [HangFire.Counter]
 where [Key] = @key
 union all
-select [Value] from HangFire.AggregatedCounter
+select [Value] from [HangFire.AggregatedCounter]
 where [Key] = @key) as s";
 
 			return _connection.Query<long?>(query, new { key = key }).Single() ?? 0;
@@ -407,7 +447,7 @@ where [Key] = @key) as s";
 			if (key == null) throw new ArgumentNullException("key");
 
 			const string query = @"
-select count([Id]) from HangFire.Hash
+select count([Id]) from [HangFire.Hash]
 where [Key] = @key";
 
 			return _connection.Query<long>(query, new { key = key }).Single();
@@ -418,13 +458,13 @@ where [Key] = @key";
 			if (key == null) throw new ArgumentNullException("key");
 
 			const string query = @"
-select min([ExpireAt]) from HangFire.Hash
+select min([ExpireAt]) from [HangFire.Hash]
 where [Key] = @key";
 
 			var result = _connection.Query<DateTime?>(query, new { key = key }).Single();
 			if (!result.HasValue) return TimeSpan.FromSeconds(-1);
 
-			return result.Value - DateTime.UtcNow;
+			return result.Value.ToLocalTime() - DateTime.UtcNow.ToLocalTime();
 		}
 
 		public override string GetValueFromHash(string key, string name)
@@ -433,7 +473,7 @@ where [Key] = @key";
 			if (name == null) throw new ArgumentNullException("name");
 
 			const string query = @"
-select [Value] from HangFire.Hash
+select [Value] from [HangFire.Hash]
 where [Key] = @key and [Field] = @field";
 
 			return _connection.Query<string>(query, new { key = key, field = name }).SingleOrDefault();
@@ -444,7 +484,7 @@ where [Key] = @key and [Field] = @field";
 			if (key == null) throw new ArgumentNullException("key");
 
 			const string query = @"
-select count([Id]) from HangFire.List
+select count([Id]) from [HangFire.List]
 where [Key] = @key";
 
 			return _connection.Query<long>(query, new { key = key }).Single();
@@ -455,13 +495,13 @@ where [Key] = @key";
 			if (key == null) throw new ArgumentNullException("key");
 
 			const string query = @"
-select min([ExpireAt]) from HangFire.List
+select min([ExpireAt]) from [HangFire.List]
 where [Key] = @key";
 
 			var result = _connection.Query<DateTime?>(query, new { key = key }).Single();
 			if (!result.HasValue) return TimeSpan.FromSeconds(-1);
 
-			return result.Value - DateTime.UtcNow;
+			return result.Value.ToLocalTime() - DateTime.UtcNow.ToLocalTime();
 		}
 
 		public override List<string> GetRangeFromList(string key, int startingFrom, int endingAt)
@@ -469,14 +509,14 @@ where [Key] = @key";
 			if (key == null) throw new ArgumentNullException("key");
 
 			const string query = @"
-select [Value] from (
-	select [Value], row_number() over (order by [Id] desc) as row_num 
-	from HangFire.List
+	select [Value] 
+	from [HangFire.List]
 	where [Key] = @key 
-) as s where s.row_num between @startingFrom and @endingAt";
+	order by Id desc
+	limit @limit offset @offset";
 
 			return _connection
-				.Query<string>(query, new { key = key, startingFrom = startingFrom + 1, endingAt = endingAt + 1 })
+				.Query<string>(query, new { key = key, limit = endingAt - startingFrom + 1, offset = startingFrom })
 				.ToList();
 		}
 
@@ -485,7 +525,7 @@ select [Value] from (
 			if (key == null) throw new ArgumentNullException("key");
 
 			const string query = @"
-select [Value] from HangFire.List
+select [Value] from [HangFire.List]
 where [Key] = @key
 order by [Id] desc";
 

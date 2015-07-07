@@ -36,8 +36,8 @@ namespace Hangfire.Storage
         // Background jobs
         public abstract string CreateExpiredJob(Job job, IDictionary<string, string> parameters, DateTime createdAt, TimeSpan expireIn);
         public abstract IFetchedJob FetchNextJob(string[] queues, CancellationToken cancellationToken);
-        public abstract void SetJobParameter(string id, string name, string value);
-        public abstract string GetJobParameter(string id, string name);
+        public abstract void SetJobParameter(string jobId, string name, string value);
+        public abstract string GetJobParameter(string jobId, string name);
         public abstract JobData GetJobData(string jobId);
         public abstract StateData GetStateData(string jobId);
 

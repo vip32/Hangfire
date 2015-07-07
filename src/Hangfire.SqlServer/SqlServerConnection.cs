@@ -1,4 +1,4 @@
-// This file is part of Hangfire.
+﻿// This file is part of Hangfire.
 // Copyright © 2013-2014 Sergey Odinokov.
 // 
 // Hangfire is free software: you can redistribute it and/or modify
@@ -217,9 +217,9 @@ where j.Id = @jobId";
             };
         }
 
-        public override void SetJobParameter(string id, string name, string value)
+        public override void SetJobParameter(string jobId, string name, string value)
         {
-            if (id == null) throw new ArgumentNullException("id");
+            if (jobId == null) throw new ArgumentNullException("jobId");
             if (name == null) throw new ArgumentNullException("name");
 
             _connection.Execute(
@@ -228,17 +228,17 @@ where j.Id = @jobId";
                 + @"on Target.JobId = Source.JobId AND Target.Name = Source.Name "
                 + @"when matched then update set Value = Source.Value "
                 + @"when not matched then insert (JobId, Name, Value) values (Source.JobId, Source.Name, Source.Value);",
-                new { jobId = id, name, value });
+                new { jobId = jobId, name, value });
         }
 
-        public override string GetJobParameter(string id, string name)
+        public override string GetJobParameter(string jobId, string name)
         {
-            if (id == null) throw new ArgumentNullException("id");
+            if (jobId == null) throw new ArgumentNullException("jobId");
             if (name == null) throw new ArgumentNullException("name");
 
             return _connection.Query<string>(
                 @"select Value from HangFire.JobParameter where JobId = @id and Name = @name",
-                new { id = id, name = name })
+                new { id = jobId, name = name })
                 .SingleOrDefault();
         }
 

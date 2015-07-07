@@ -19,7 +19,7 @@ CREATE INDEX [Job_IX_HangFire_Job_StateName]
 ON [Hangfire.Job]
 ([StateName] DESC);
 CREATE TABLE [Hangfire.State] (
-        [Id]    integer NOT NULL,
+        [Id]    INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         [JobId] integer NOT NULL,
         [Name]  nvarchar(20) NOT NULL COLLATE NOCASE,
         [Reason]        nvarchar(100) COLLATE NOCASE,

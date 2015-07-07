@@ -60,6 +60,8 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SQLiteJobQueueFacts.cs" />
+    <Compile Include="SQLiteConnectionFacts.cs" />
+    <Compile Include="SQLiteFetchedJobFacts.cs" />
     <Compile Include="Utils\CleanDatabaseAttribute.cs" />
     <Compile Include="Utils\ConnectionUtils.cs" />
   </ItemGroup>
