@@ -64,6 +64,7 @@
     <Compile Include="SQLiteConnectionFacts.cs" />
     <Compile Include="SQLiteFetchedJobFacts.cs" />
     <Compile Include="SQLiteStorageFacts.cs" />
+    <Compile Include="StorageOptionsFacts.cs" />
     <Compile Include="Utils\CleanDatabaseAttribute.cs" />
     <Compile Include="Utils\ConnectionUtils.cs" />
   </ItemGroup>
