@@ -73,6 +73,7 @@
     <Compile Include="Entities\SqlHash.cs" />
     <Compile Include="Entities\SqlJob.cs" />
     <Compile Include="Entities\SqlState.cs" />
+    <Compile Include="ExpirationManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SQLiteDistributedLock.cs" />
     <Compile Include="SQLiteConnection.cs" />

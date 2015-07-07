@@ -58,7 +58,7 @@ namespace Hangfire.SQLite
         /// config file.</exception>
         public SQLiteStorage(string nameOrConnectionString, SQLiteStorageOptions options)
         {
-            if (nameOrConnectionString == null) throw new ArgumentNullException("nameOrConnectionString");
+            if (string.IsNullOrEmpty(nameOrConnectionString)) throw new ArgumentNullException("nameOrConnectionString");
             if (options == null) throw new ArgumentNullException("options");
 
             _options = options;
@@ -118,11 +118,11 @@ namespace Hangfire.SQLite
             return new SQLiteConnection(connection, _options.TransactionIsolationLevel, QueueProviders, _existingConnection == null);
         }
 
-        //public override IEnumerable<IServerComponent> GetComponents()
-        //{
-        //    yield return new ExpirationManager(this, _options.JobExpirationCheckInterval);
-        //    yield return new CountersAggregator(this, _options.CountersAggregateInterval);
-        //}
+        public override IEnumerable<IServerComponent> GetComponents()
+        {
+            yield return new ExpirationManager(this, _options.JobExpirationCheckInterval);
+            //yield return new CountersAggregator(this, _options.CountersAggregateInterval);
+        }
 
         //public override void WriteOptionsToLog(ILog logger)
         //{
@@ -190,7 +190,7 @@ namespace Hangfire.SQLite
 
         private bool IsConnectionString(string nameOrConnectionString)
         {
-            return nameOrConnectionString.Contains(";");
+            return nameOrConnectionString.ToLower().Contains("data source");
         }
 
         private bool IsConnectionStringInConfiguration(string connectionStringName)

@@ -58,7 +58,7 @@ namespace Hangfire
 
         public virtual IEnumerable<IServerComponent> GetComponents()
         {
-            return Enumerable.Empty<IServerComponent>();
+           return Enumerable.Empty<IServerComponent>();
         }
 
         public virtual IEnumerable<IStateHandler> GetStateHandlers()
