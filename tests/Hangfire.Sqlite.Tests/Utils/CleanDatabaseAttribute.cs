@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Threading;
 using System.Transactions;
 using Hangfire.SQLite.Tests.Utils;
-using Xunit;
+using Xunit.Sdk;
 
 namespace Hangfire.SQLite.Tests
 {
