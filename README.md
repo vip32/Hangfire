@@ -39,7 +39,7 @@ After install, update your existing [OWIN Startup](http://www.asp.net/aspnet/ove
 ```csharp
 public void Configuration(IAppBuilder app)
 {
-    GlobalConfiguration.Configuration.UseSqlServerStorage("<connection string or its name>");
+    GlobalConfiguration.Configuration.UseSqlLiteStorage("<file name>");
     
     app.UseHangfireServer();
     app.UseHangfireDashboard();
